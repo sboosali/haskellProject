@@ -1,9 +1,12 @@
-{
+{ lib
+, cabal-install
 }:
 ########################################
 let                                    # IMPORTS / UTILITIES
 
-
+cabal-new = (import ./cabal-new.nix) {
+ inherit lib cabal-install;
+};
 
 in
 ########################################
