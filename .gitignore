@@ -1,11 +1,6 @@
 # my
-ignored
 ignore/
-notes
-goals
 TODO
-cbits/main
-.projectile
 
 # large files
 data/large/
@@ -30,10 +25,11 @@ report.html
 # Emacs
 \#*
 *~
-.#*
+.\#*
 \#*\#
 *.log
 TAGS
+.projectile
 
 # Nix
 result/
@@ -44,4 +40,3 @@ result-*/
 
 # OSX
 .DS_Store
-
