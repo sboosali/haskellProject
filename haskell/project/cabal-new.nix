@@ -70,6 +70,63 @@ in
 
 ====================
 
+nixpkgs/pkgs/development/haskell-modules/make-package-set.nix
+
+<https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/haskell-modules/make-package-set.nix#L210>
+
+    # Returns a derivation whose environment contains a GHC with only
+    # the dependencies of packages listed in `packages`, not the
+    # packages themselves. Using nix-shell on this derivation will
+    # give you an environment suitable for developing the listed
+    # packages with an incremental tool like cabal-install.
+    #
+    #     # default.nix
+    #     with import <nixpkgs> {};
+    #     haskellPackages.extend (haskell.lib.packageSourceOverrides {
+    #       frontend = ./frontend;
+    #       backend = ./backend;
+    #       common = ./common;
+    #     })
+    #
+    #     # shell.nix
+    #     (import ./.).shellFor {
+    #       packages = p: [p.frontend p.backend p.common];
+    #       withHoogle = true;
+    #     }
+    #
+    #     -- cabal.project
+    #     packages:
+    #       frontend/
+    #       backend/
+    #       common/
+    #
+    #     bash$ nix-shell --run "cabal new-build all"
+
+    shellFor = { packages, withHoogle ? false, ... } @ args:
+      let
+        selected = packages self;
+        packageInputs = builtins.map getHaskellBuildInputs selected;
+        haskellInputs =
+          builtins.filter
+            (input: pkgs.lib.all (p: input.outPath != p.outPath) selected)
+            (pkgs.lib.concatMap (p: p.haskellBuildInputs) packageInputs);
+        systemInputs = pkgs.lib.concatMap (p: p.systemBuildInputs) packageInputs;
+        withPackages = if withHoogle then self.ghcWithHoogle else self.ghcWithPackages;
+        mkDrvArgs = builtins.removeAttrs args ["packages" "withHoogle"];
+      in pkgs.stdenv.mkDerivation (mkDrvArgs // {
+        name = "ghc-shell-for-packages";
+        nativeBuildInputs = [(withPackages (_: haskellInputs))] ++ mkDrvArgs.nativeBuildInputs or [];
+        buildInputs = systemInputs ++ mkDrvArgs.buildInputs or [];
+        phases = ["installPhase"];
+        installPhase = "echo $nativeBuildInputs $buildInputs > $out";
+      });
+
+    ghc = ghc // {
+      withPackages = self.ghcWithPackages;
+      withHoogle = self.ghcWithHoogle;
+    };
+
+====================
  
  typesOf = {
   target    = { expected = ["string","null"]; actual = builtins.typeOf target;
